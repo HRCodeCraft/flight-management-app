@@ -1,7 +1,17 @@
 import { FlightSearchForm } from '@/components/flights/FlightSearchForm';
 import { InstallPrompt } from '@/components/ui/InstallPrompt';
+import { createClient } from '@/lib/supabase/server';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = createClient();
+  const { data: flights } = await supabase
+    .from('flights')
+    .select('origin, destination')
+    .neq('status', 'cancelled');
+
+  const origins = [...new Set((flights ?? []).map((f) => f.origin))].sort();
+  const destinations = [...new Set((flights ?? []).map((f) => f.destination))].sort();
+
   return (
     <div className="relative">
       {/* Hero */}
@@ -18,7 +28,7 @@ export default function HomePage() {
 
           {/* Search card */}
           <div className="mx-auto max-w-3xl">
-            <FlightSearchForm />
+            <FlightSearchForm origins={origins} destinations={destinations} />
           </div>
         </div>
       </div>

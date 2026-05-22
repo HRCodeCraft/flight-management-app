@@ -5,7 +5,17 @@ import { useState } from 'react';
 import { useFlightStore } from '@/store/useFlightStore';
 import { AIRPORTS, type SearchQuery } from '@/types';
 
-export function FlightSearchForm() {
+interface Props {
+  origins?: string[];
+  destinations?: string[];
+}
+
+function getAirportLabel(code: string) {
+  const airport = AIRPORTS.find((a) => a.code === code);
+  return airport ? `${airport.city} (${code})` : code;
+}
+
+export function FlightSearchForm({ origins = [], destinations = [] }: Props) {
   const router = useRouter();
   const { searchQuery, setSearchQuery, setCurrentStep } = useFlightStore();
 
@@ -19,6 +29,16 @@ export function FlightSearchForm() {
   });
 
   const [error, setError] = useState('');
+
+  // When origin changes, reset destination if it's no longer valid
+  function handleOriginChange(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      origin: value,
+      destination: prev.destination === value ? '' : prev.destination,
+    }));
+    setError('');
+  }
 
   function handleChange(field: keyof SearchQuery, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -46,6 +66,12 @@ export function FlightSearchForm() {
     router.push(`/flights?${params}`);
   }
 
+  // Use DB-fetched airports if available, else fallback to all airports
+  const originOptions = origins.length > 0 ? origins : AIRPORTS.map((a) => a.code);
+  const destOptions = destinations.length > 0
+    ? destinations.filter((d) => d !== form.origin)
+    : AIRPORTS.map((a) => a.code).filter((c) => c !== form.origin);
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -57,13 +83,13 @@ export function FlightSearchForm() {
           <select
             className="input"
             value={form.origin}
-            onChange={(e) => handleChange('origin', e.target.value)}
+            onChange={(e) => handleOriginChange(e.target.value)}
             required
           >
             <option value="">Select origin</option>
-            {AIRPORTS.map((a) => (
-              <option key={a.code} value={a.code}>
-                {a.city} ({a.code})
+            {originOptions.map((code) => (
+              <option key={code} value={code}>
+                {getAirportLabel(code)}
               </option>
             ))}
           </select>
@@ -75,11 +101,12 @@ export function FlightSearchForm() {
             value={form.destination}
             onChange={(e) => handleChange('destination', e.target.value)}
             required
+            disabled={!form.origin}
           >
-            <option value="">Select destination</option>
-            {AIRPORTS.map((a) => (
-              <option key={a.code} value={a.code}>
-                {a.city} ({a.code})
+            <option value="">{form.origin ? 'Select destination' : 'Select origin first'}</option>
+            {destOptions.map((code) => (
+              <option key={code} value={code}>
+                {getAirportLabel(code)}
               </option>
             ))}
           </select>

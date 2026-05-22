@@ -14,12 +14,21 @@ interface PageProps {
 
 export default async function FlightsPage({ searchParams }: PageProps) {
   const { origin, destination, date, passengers } = searchParams;
+  const supabase = createClient();
+
+  // Fetch available origins & destinations for the search form dropdowns
+  const { data: routeData } = await supabase
+    .from('flights')
+    .select('origin, destination')
+    .neq('status', 'cancelled');
+
+  const origins = [...new Set((routeData ?? []).map((f) => f.origin))].sort();
+  const destinations = [...new Set((routeData ?? []).map((f) => f.destination))].sort();
 
   let flights: Flight[] = [];
   let error = '';
 
   if (origin && destination && date) {
-    const supabase = createClient();
     const startOfDay = new Date(`${date}T00:00:00`).toISOString();
     const endOfDay = new Date(`${date}T23:59:59`).toISOString();
 
@@ -50,12 +59,12 @@ export default async function FlightsPage({ searchParams }: PageProps) {
           <details className="card">
             <summary className="p-4 font-medium cursor-pointer">Modify Search</summary>
             <div className="p-4 pt-0">
-              <FlightSearchForm />
+              <FlightSearchForm origins={origins} destinations={destinations} />
             </div>
           </details>
         </div>
         <div className="hidden md:block">
-          <FlightSearchForm />
+          <FlightSearchForm origins={origins} destinations={destinations} />
         </div>
       </div>
 
