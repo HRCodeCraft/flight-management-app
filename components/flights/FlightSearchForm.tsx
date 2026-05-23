@@ -18,7 +18,6 @@ function getAirportLabel(code: string) {
 export function FlightSearchForm({ origins = [], destinations = [] }: Props) {
   const router = useRouter();
   const { searchQuery, setSearchQuery, setCurrentStep } = useFlightStore();
-
   const today = new Date().toISOString().split('T')[0];
 
   const [form, setForm] = useState<SearchQuery>({
@@ -27,16 +26,10 @@ export function FlightSearchForm({ origins = [], destinations = [] }: Props) {
     date: searchQuery?.date ?? today,
     passenger_count: searchQuery?.passenger_count ?? 1,
   });
-
   const [error, setError] = useState('');
 
-  // When origin changes, reset destination if it's no longer valid
   function handleOriginChange(value: string) {
-    setForm((prev) => ({
-      ...prev,
-      origin: value,
-      destination: prev.destination === value ? '' : prev.destination,
-    }));
+    setForm((prev) => ({ ...prev, origin: value, destination: prev.destination === value ? '' : prev.destination }));
     setError('');
   }
 
@@ -45,105 +38,100 @@ export function FlightSearchForm({ origins = [], destinations = [] }: Props) {
     setError('');
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.origin || !form.destination) {
-      setError('Please select origin and destination');
-      return;
+  function swapAirports() {
+    if (form.origin && form.destination) {
+      setForm((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
     }
-    if (form.origin === form.destination) {
-      setError('Origin and destination must be different');
-      return;
-    }
-    setSearchQuery(form);
-    setCurrentStep('results');
-    const params = new URLSearchParams({
-      origin: form.origin,
-      destination: form.destination,
-      date: form.date,
-      passengers: String(form.passenger_count),
-    });
-    router.push(`/flights?${params}`);
   }
 
-  // Use DB-fetched airports if available, else fallback to all airports
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.origin || !form.destination) { setError('Please select origin and destination'); return; }
+    if (form.origin === form.destination) { setError('Origin and destination must be different'); return; }
+    setSearchQuery(form);
+    setCurrentStep('results');
+    router.push(`/flights?${new URLSearchParams({ origin: form.origin, destination: form.destination, date: form.date, passengers: String(form.passenger_count) })}`);
+  }
+
   const originOptions = origins.length > 0 ? origins : AIRPORTS.map((a) => a.code);
   const destOptions = destinations.length > 0
     ? destinations.filter((d) => d !== form.origin)
     : AIRPORTS.map((a) => a.code).filter((c) => c !== form.origin);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8"
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <form onSubmit={handleSubmit} className="rounded-2xl bg-white/95 backdrop-blur-md shadow-ticket border border-white/50 p-6 sm:p-8">
+      {/* Trip type */}
+      <div className="flex items-center gap-3 mb-6">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/></svg>
+          One Way
+        </span>
+        <span className="text-xs text-slate-400 font-medium">Round Trip coming soon</span>
+      </div>
+
+      {/* Origin / Destination */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 mb-4 items-end">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-          <select
-            className="input"
-            value={form.origin}
-            onChange={(e) => handleOriginChange(e.target.value)}
-            required
-          >
-            <option value="">Select origin</option>
+          <label className="label">From</label>
+          <select className="input text-base font-medium" value={form.origin} onChange={(e) => handleOriginChange(e.target.value)} required>
+            <option value="">Select city</option>
             {originOptions.map((code) => (
-              <option key={code} value={code}>
-                {getAirportLabel(code)}
-              </option>
+              <option key={code} value={code}>{getAirportLabel(code)}</option>
             ))}
           </select>
         </div>
+
+        {/* Swap button */}
+        <button
+          type="button"
+          onClick={swapAirports}
+          disabled={!form.origin || !form.destination}
+          className="w-10 h-10 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 self-end mb-0.5 shadow-sm mx-auto"
+          title="Swap airports"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+          </svg>
+        </button>
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-          <select
-            className="input"
-            value={form.destination}
-            onChange={(e) => handleChange('destination', e.target.value)}
-            required
-            disabled={!form.origin}
-          >
-            <option value="">{form.origin ? 'Select destination' : 'Select origin first'}</option>
+          <label className="label">To</label>
+          <select className="input text-base font-medium" value={form.destination} onChange={(e) => handleChange('destination', e.target.value)} required disabled={!form.origin}>
+            <option value="">{form.origin ? 'Select city' : 'Select origin first'}</option>
             {destOptions.map((code) => (
-              <option key={code} value={code}>
-                {getAirportLabel(code)}
-              </option>
+              <option key={code} value={code}>{getAirportLabel(code)}</option>
             ))}
           </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      {/* Date + Passengers */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input
-            type="date"
-            className="input"
-            value={form.date}
-            min={today}
-            onChange={(e) => handleChange('date', e.target.value)}
-            required
-          />
+          <label className="label">Departure Date</label>
+          <input type="date" className="input" value={form.date} min={today} onChange={(e) => handleChange('date', e.target.value)} required />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Passengers</label>
-          <select
-            className="input"
-            value={form.passenger_count}
-            onChange={(e) => handleChange('passenger_count', parseInt(e.target.value))}
-          >
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>{n} passenger{n > 1 ? 's' : ''}</option>
+          <label className="label">Passengers</label>
+          <select className="input" value={form.passenger_count} onChange={(e) => handleChange('passenger_count', parseInt(e.target.value))}>
+            {[1,2,3,4,5,6].map((n) => (
+              <option key={n} value={n}>{n} Passenger{n > 1 ? 's' : ''}</option>
             ))}
           </select>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 mb-4 bg-red-50 rounded-lg p-3">{error}</p>
+        <div className="mb-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
+          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+          {error}
+        </div>
       )}
 
-      <button type="submit" className="btn-primary w-full py-3 text-base">
+      <button type="submit" className="btn-primary w-full py-3.5 text-base rounded-xl">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
         Search Flights
       </button>
     </form>
