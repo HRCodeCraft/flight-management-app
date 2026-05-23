@@ -10,6 +10,8 @@ interface PageProps {
     destination?: string;
     date?: string;
     passengers?: string;
+    adults?: string;
+    seniors?: string;
   };
 }
 
@@ -18,7 +20,7 @@ function getCity(code: string) {
 }
 
 export default async function FlightsPage({ searchParams }: PageProps) {
-  const { origin, destination, date, passengers } = searchParams;
+  const { origin, destination, date, passengers, adults, seniors } = searchParams;
   const supabase = createClient();
 
   const { data: routeData } = await supabase
@@ -52,6 +54,8 @@ export default async function FlightsPage({ searchParams }: PageProps) {
 
   const hasSearch = !!(origin && destination && date);
   const passengerCount = parseInt(passengers ?? '1');
+  const adultCount  = parseInt(adults  ?? String(passengerCount));
+  const seniorCount = parseInt(seniors ?? '0');
 
   return (
     <div className="min-h-screen bg-[#f0f4ff]">
@@ -73,7 +77,8 @@ export default async function FlightsPage({ searchParams }: PageProps) {
                 <span className="text-2xl sm:text-3xl font-black tracking-tight">{getCity(destination!)}</span>
               </div>
               <p className="text-white/50 text-sm mt-1">
-                {date} &middot; {passengerCount} passenger{passengerCount > 1 ? 's' : ''}
+                {date} &middot; {adultCount} adult{adultCount !== 1 ? 's' : ''}
+                {seniorCount > 0 && ` · ${seniorCount} senior${seniorCount > 1 ? 's' : ''}`}
               </p>
             </div>
           )}
@@ -127,7 +132,12 @@ export default async function FlightsPage({ searchParams }: PageProps) {
           <div className="space-y-4 animate-fade-up">
             {flights.map((flight, i) => (
               <div key={flight.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.06}s` }}>
-                <FlightCard flight={flight} passengerCount={passengerCount} />
+                <FlightCard
+                  flight={flight}
+                  passengerCount={passengerCount}
+                  adultCount={adultCount}
+                  seniorCount={seniorCount}
+                />
               </div>
             ))}
           </div>

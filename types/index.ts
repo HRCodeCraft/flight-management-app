@@ -1,6 +1,7 @@
 export type FlightStatus = 'scheduled' | 'delayed' | 'cancelled' | 'departed' | 'arrived';
 export type SeatClass = 'economy' | 'business' | 'first';
 export type BookingStatus = 'confirmed' | 'rescheduled' | 'cancelled';
+export type PassengerType = 'adult' | 'senior';
 
 export interface Flight {
   id: string;
@@ -12,6 +13,7 @@ export interface Flight {
   aircraft_type: string;
   status: FlightStatus;
   base_price: number;
+  pets_allowed: boolean;
 }
 
 export interface Seat {
@@ -44,6 +46,7 @@ export interface Passenger {
   passport_no: string;
   nationality: string;
   dob: string;
+  passenger_type: PassengerType;
 }
 
 export interface Reschedule {
@@ -60,6 +63,8 @@ export interface SearchQuery {
   destination: string;
   date: string;
   passenger_count: number;
+  adult_count: number;
+  senior_count: number;
 }
 
 export interface PassengerFormData {
@@ -67,6 +72,7 @@ export interface PassengerFormData {
   passport_no: string;
   nationality: string;
   dob: string;
+  passenger_type: PassengerType;
 }
 
 export type BookingStep = 'search' | 'results' | 'seats' | 'details' | 'confirmation';

@@ -22,11 +22,14 @@ export function PassengerDetailsForm({ flight }: Props) {
   const { selectedSeat, setPassengerData, resetBooking } = useFlightStore();
   const { user } = useUserStore();
 
+  const SENIOR_DISCOUNT = 0.10;
+
   const [form, setForm] = useState<PassengerFormData>({
     full_name: '',
     passport_no: '',
     nationality: 'Indian',
     dob: '',
+    passenger_type: 'adult',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +39,9 @@ export function PassengerDetailsForm({ flight }: Props) {
     return null;
   }
 
-  const totalPrice = flight.base_price + (selectedSeat?.extra_fee ?? 0);
+  const discount = form.passenger_type === 'senior' ? SENIOR_DISCOUNT : 0;
+  const discountedBase = Math.round(flight.base_price * (1 - discount));
+  const totalPrice = discountedBase + (selectedSeat?.extra_fee ?? 0);
 
   function handleChange(field: keyof PassengerFormData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -74,6 +79,7 @@ export function PassengerDetailsForm({ flight }: Props) {
         passport_no: form.passport_no,
         nationality: form.nationality,
         dob: form.dob,
+        passenger_type: form.passenger_type,
       });
 
       if (passengerError) throw new Error(passengerError.message);
@@ -102,8 +108,11 @@ export function PassengerDetailsForm({ flight }: Props) {
             </div>
             <div className="text-right">
               <p className="text-3xl font-black">{formatPrice(totalPrice)}</p>
+              {form.passenger_type === 'senior' && (
+                <p className="text-emerald-400 text-xs font-semibold">Senior 10% applied</p>
+              )}
               {selectedSeat.extra_fee > 0 && (
-                <p className="text-white/50 text-xs">incl. +{formatPrice(selectedSeat.extra_fee)} upgrade</p>
+                <p className="text-white/50 text-xs">+{formatPrice(selectedSeat.extra_fee)} upgrade</p>
               )}
             </div>
           </div>
@@ -116,13 +125,45 @@ export function PassengerDetailsForm({ flight }: Props) {
           <div className="absolute -right-4 w-8 h-8 rounded-full bg-[#f0f4ff]" />
         </div>
 
+        {/* Passenger type selector */}
+        <div className="bg-white px-6 pt-4">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Passenger Type</p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {(['adult', 'senior'] as const).map((type) => (
+              <button key={type} type="button"
+                onClick={() => handleChange('passenger_type', type)}
+                className={`rounded-xl border-2 p-3 text-left transition-all ${
+                  form.passenger_type === type
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-blue-300'
+                }`}>
+                <p className="font-bold text-slate-900 text-sm capitalize">{type}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {type === 'adult' ? 'Age 12–59' : 'Age 60+ · 10% off'}
+                </p>
+                {type === 'senior' && (
+                  <p className="text-xs text-emerald-600 font-semibold mt-0.5">
+                    Save {formatPrice(Math.round(flight.base_price * SENIOR_DISCOUNT))}
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Price breakdown */}
-        <div className="bg-white px-6 py-4">
+        <div className="bg-white px-6 pb-4">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-600">
               <span>Base fare</span>
               <span className="font-semibold">{formatPrice(flight.base_price)}</span>
             </div>
+            {form.passenger_type === 'senior' && (
+              <div className="flex justify-between text-emerald-700">
+                <span>Senior citizen discount (10%)</span>
+                <span className="font-semibold">−{formatPrice(Math.round(flight.base_price * SENIOR_DISCOUNT))}</span>
+              </div>
+            )}
             {selectedSeat.extra_fee > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span className="capitalize">{selectedSeat.class} class upgrade</span>

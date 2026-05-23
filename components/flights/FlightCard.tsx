@@ -9,6 +9,8 @@ import { AIRPORTS } from '@/types';
 interface Props {
   flight: Flight;
   passengerCount: number;
+  adultCount?: number;
+  seniorCount?: number;
 }
 
 function getAirportCity(code: string) {
@@ -17,13 +19,15 @@ function getAirportCity(code: string) {
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  delayed: 'bg-amber-50 text-amber-700 border-amber-200',
+  delayed:   'bg-amber-50 text-amber-700 border-amber-200',
   cancelled: 'bg-red-50 text-red-600 border-red-200',
-  departed: 'bg-blue-50 text-blue-700 border-blue-200',
-  arrived: 'bg-slate-50 text-slate-600 border-slate-200',
+  departed:  'bg-blue-50 text-blue-700 border-blue-200',
+  arrived:   'bg-slate-50 text-slate-600 border-slate-200',
 };
 
-export function FlightCard({ flight, passengerCount }: Props) {
+const SENIOR_DISCOUNT = 0.10;
+
+export function FlightCard({ flight, passengerCount, adultCount = passengerCount, seniorCount = 0 }: Props) {
   const router = useRouter();
   const { setSelectedFlight, setCurrentStep } = useFlightStore();
 
@@ -33,8 +37,11 @@ export function FlightCard({ flight, passengerCount }: Props) {
     router.push(`/booking/${flight.id}/seats`);
   }
 
-  const totalPrice = flight.base_price * passengerCount;
-  const duration = formatDuration(flight.departs_at, flight.arrives_at);
+  const adultTotal  = adultCount * flight.base_price;
+  const seniorTotal = seniorCount * Math.round(flight.base_price * (1 - SENIOR_DISCOUNT));
+  const grandTotal  = adultTotal + seniorTotal;
+  const hasSeniors  = seniorCount > 0;
+  const duration    = formatDuration(flight.departs_at, flight.arrives_at);
 
   return (
     <div className="card-hover overflow-hidden group">
@@ -58,14 +65,12 @@ export function FlightCard({ flight, passengerCount }: Props) {
 
           {/* Route timeline */}
           <div className="flex-1 flex items-center gap-3">
-            {/* Departure */}
             <div className="text-left min-w-[64px]">
               <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">{formatTime(flight.departs_at)}</p>
               <p className="text-base font-bold text-blue-600">{flight.origin}</p>
               <p className="text-xs text-slate-400 truncate max-w-[80px]">{getAirportCity(flight.origin)}</p>
             </div>
 
-            {/* Timeline */}
             <div className="flex-1 flex flex-col items-center gap-1 min-w-[60px]">
               <span className="text-xs font-semibold text-slate-400">{duration}</span>
               <div className="relative w-full flex items-center gap-1">
@@ -80,7 +85,6 @@ export function FlightCard({ flight, passengerCount }: Props) {
               <span className="text-xs text-slate-400">Non-stop</span>
             </div>
 
-            {/* Arrival */}
             <div className="text-right min-w-[64px]">
               <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">{formatTime(flight.arrives_at)}</p>
               <p className="text-base font-bold text-purple-600">{flight.destination}</p>
@@ -89,18 +93,30 @@ export function FlightCard({ flight, passengerCount }: Props) {
           </div>
 
           {/* Price & CTA */}
-          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:text-right gap-3 sm:min-w-[130px] shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:text-right gap-3 sm:min-w-[140px] shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
             <div>
-              <p className="text-xs text-slate-400 font-medium">from / person</p>
-              <p className="text-2xl font-black text-slate-900">{formatPrice(flight.base_price)}</p>
-              {passengerCount > 1 && (
-                <p className="text-xs text-slate-500">Total: {formatPrice(totalPrice)}</p>
+              {hasSeniors ? (
+                <>
+                  <p className="text-xs text-slate-400 font-medium">from</p>
+                  <p className="text-2xl font-black text-slate-900">{formatPrice(flight.base_price)}</p>
+                  <p className="text-xs text-emerald-600 font-semibold">
+                    Senior: {formatPrice(Math.round(flight.base_price * (1 - SENIOR_DISCOUNT)))}
+                  </p>
+                  {(passengerCount > 1) && (
+                    <p className="text-xs text-slate-500">Total: {formatPrice(grandTotal)}</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-400 font-medium">from / person</p>
+                  <p className="text-2xl font-black text-slate-900">{formatPrice(flight.base_price)}</p>
+                  {passengerCount > 1 && (
+                    <p className="text-xs text-slate-500">Total: {formatPrice(grandTotal)}</p>
+                  )}
+                </>
               )}
             </div>
-            <button
-              onClick={handleSelect}
-              className="btn-primary whitespace-nowrap shrink-0 group-hover:shadow-glow"
-            >
+            <button onClick={handleSelect} className="btn-primary whitespace-nowrap shrink-0 group-hover:shadow-glow">
               Select
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
@@ -115,9 +131,30 @@ export function FlightCard({ flight, passengerCount }: Props) {
             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
             {flight.status.charAt(0).toUpperCase() + flight.status.slice(1)}
           </span>
-          <span className="badge bg-slate-50 text-slate-500 border border-slate-200 text-xs">Economy</span>
+          <span className="badge bg-blue-50 text-blue-600 border border-blue-200 text-xs">Economy</span>
           <span className="badge bg-purple-50 text-purple-600 border border-purple-200 text-xs">Business</span>
-          <span className="badge bg-amber-50 text-amber-600 border border-amber-200 text-xs">First Class</span>
+          <span className="badge bg-amber-50 text-amber-600 border border-amber-200 text-xs">
+            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+            First Class
+          </span>
+          {hasSeniors && (
+            <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs">
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              Senior 10% off
+            </span>
+          )}
+          {flight.pets_allowed && (
+            <span className="badge bg-teal-50 text-teal-700 border border-teal-200 text-xs">
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4.5 5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm7 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM2 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm13 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM6 14.5c0-2.485 1.79-4.5 4-4.5s4 2.015 4 4.5v.5H6v-.5z"/>
+              </svg>
+              Pets OK
+            </span>
+          )}
         </div>
       </div>
     </div>
