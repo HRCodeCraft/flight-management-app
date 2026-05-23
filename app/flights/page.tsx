@@ -22,8 +22,8 @@ export default async function FlightsPage({ searchParams }: PageProps) {
     .select('origin, destination')
     .neq('status', 'cancelled');
 
-  const origins = [...new Set((routeData ?? []).map((f) => f.origin))].sort();
-  const destinations = [...new Set((routeData ?? []).map((f) => f.destination))].sort();
+  const origins = Array.from(new Set((routeData ?? []).map((f) => f.origin))).sort();
+  const destinations = Array.from(new Set((routeData ?? []).map((f) => f.destination))).sort();
 
   let flights: Flight[] = [];
   let error = '';

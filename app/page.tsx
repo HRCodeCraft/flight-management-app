@@ -9,8 +9,8 @@ export default async function HomePage() {
     .select('origin, destination')
     .neq('status', 'cancelled');
 
-  const origins = [...new Set((flights ?? []).map((f) => f.origin))].sort();
-  const destinations = [...new Set((flights ?? []).map((f) => f.destination))].sort();
+  const origins = Array.from(new Set((flights ?? []).map((f) => f.origin))).sort();
+  const destinations = Array.from(new Set((flights ?? []).map((f) => f.destination))).sort();
 
   return (
     <div className="relative">
