@@ -4,7 +4,7 @@ A fully responsive, production-grade flight management PWA built with **Next.js 
 
 ## Live Demo
 
-🔗 **[https://flight-management-a9cj7c6l0-hrs-projects-c36a30d4.vercel.app](https://flight-management-a9cj7c6l0-hrs-projects-c36a30d4.vercel.app)**
+🔗 **[https://flight-management-app-rho.vercel.app](https://flight-management-app-rho.vercel.app)**
 
 ## Features
 
