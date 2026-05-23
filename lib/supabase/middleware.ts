@@ -27,9 +27,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedRoutes = ['/my-bookings', '/booking', '/confirmation'];
+  // Seat map is public — only details, confirmation, and my-bookings need login
+  const protectedRoutes = ['/my-bookings', '/booking/[^/]+/details', '/confirmation'];
   const isProtected = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
+    new RegExp(`^${route}`).test(request.nextUrl.pathname)
   );
 
   if (isProtected && !user) {
